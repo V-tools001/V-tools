@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# V-tools — Veron’s toolkit (entrypoint)
+# Part of the V-tools suite. Dispatches to tools in tools/
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TOOLS_DIR="${ROOT}/tools"
+
+BOLD="$(tput bold 2>/dev/null || true)"
+RESET="$(tput sgr0 2>/dev/null || true)"
+
+usage() {
+  cat <<EOF
+${BOLD}V-tools${RESET} — Veron’s toolkit (educational, authorized testing only)
+
+Usage:
+  v <tool> [args...]
+
+Tools:
+$(for f in "${TOOLS_DIR}"/v-*.sh 2>/dev/null; do
+    [[ -e "$f" ]] || continue
+    name="$(basename "$f" .sh)"
+    desc="$(grep -m1 '^# @desc:' "$f" | sed 's/^# @desc:[[:space:]]*//')"
+    printf "  %-22s %s\n" "${name#v-}" "${desc:-…}"
+  done)
+
+Examples:
+  v lowfruit-scanner https://target.tld
+  v lowfruit-scanner --help
+
+Notes:
+  - This toolkit is free to use for educational, lawful, and authorized testing only.
+EOF
+}
+
+if [[ $# -lt 1 || "$1" =~ ^(-h|--help)$ ]]; then
+  usage; exit 0
+fi
+
+SUB="v-$1"
+shift || true
+
+TOOL="${TOOLS_DIR}/${SUB}.sh"
+if [[ ! -x "$TOOL" ]]; then
+  echo "Unknown tool: $SUB"
+  echo "Run: v --help"
+  exit 1
+fi
+
+exec "$TOOL" "$@"
